@@ -6,7 +6,7 @@ const chokidar = require('chokidar');
 
 const shell = require('shelljs');
 
-const GIF_FOLDER = path.join(os.homedir(), '.config', 'gif-viewer');
+const GIF_FOLDER = path.join(os.homedir(), '.config', 'sparky-screen');
 const GIF_REGEX = /.+?.gif$/i;
 
 const ReadGifs = async () => {
@@ -15,7 +15,7 @@ const ReadGifs = async () => {
     const files = await fsp.readdir(GIF_FOLDER);
     const gifFiles = files.filter(file => GIF_REGEX.test(file))
     if (gifFiles.length === 0) {
-      alert('No gifs located ~/.config/gif-viewer D:')
+      alert('No gifs located ~/.config/sparky-screen D:')
       return
     }
     let gifHolder = new DocumentFragment();

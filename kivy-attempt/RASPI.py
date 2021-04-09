@@ -23,7 +23,7 @@ Config.write()
 kivy.require('2.0.0')
 
 
-GIF_PATH = os.path.join(Path.home(), '.config', 'gif-viewer')
+GIF_PATH = os.path.join(Path.home(), '.config', 'sparky-screen')
 IS_GIF = re.compile('.+?.gif$', re.IGNORECASE)
 
 IS_PI = hasattr(os, 'uname') and os.uname()[4][:3] == 'arm'
@@ -51,7 +51,7 @@ class GifViewer(FloatLayout):
         if len(gif_list) == 0:
             popup = Popup(
                 title='EXTREME ERROR',
-                content=Label(text='AGHHHH, NO GIFFS D:\nClosing program in disgust'),
+                content=Label(text='AGHHHH, NO GIFFS LOCATED ~/.config/sparky-screen D: D:\nClosing program in disgust')
             )
             popup.bind(on_dismiss=App.get_running_app().stop)
             popup.open()
