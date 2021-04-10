@@ -16,6 +16,9 @@ import asyncio
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
 
+import janus
+from functools import partial
+
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 FRONTEND_PATH = os.path.join(DIR_PATH, 'vanilla-js-client')
@@ -35,8 +38,6 @@ if IS_PI:
     chrome_path = '/usr/bin/chromium-browser'
 else:
     from pynput import keyboard
-    import janus
-    from functools import partial
     chrome_path = 'C:\Program Files (x86)\Google\Chrome\Application\chrome'
 
 
@@ -58,12 +59,21 @@ class ButtonWatcher:
             listener.start()
             asyncio.create_task(cls._ProxyKeys(queue.async_q))
         else:
+            queue = janus.Queue()
+
             cls.toggle_button = Button(TOGGLE_BUTTON)
-            cls.toggle_button.when_pressed = cls._ToggleButtonPushed
-            cls.toggle_button.when_released = cls._ToggleButtonReleased
+            bound_toggle_pressed = partial(cls._ToggleButtonPushed, queue.sync_q)
+            cls.toggle_button.when_pressed = bound_toggle_pressed
+            bound_toggle_released = partial(cls._ToggleButtonReleased, queue.sync_q)
+            cls.toggle_button.when_released = bound_toggle_released
+
             cls.power_button = Button(POWER_BUTTON)
-            cls.power_button.when_pressed = cls._PowerButtonPushed
-            cls.power_button.when_released = cls._PowerButtonReleased
+            bound_power_pressed = partial(cls._PowerButtonPushed, queue.sync_q)
+            cls.power_button.when_pressed = bound_power_pressed
+            bound_power_released = partial(cls._PowerButtonReleased, queue.sync_q)
+            cls.power_button.when_released = bound_power_released
+
+            asyncio.create_task(cls._ProxyButtons(queue.async_q))
 
     @classmethod
     def _HandleKeydown(cls, queue, key):
@@ -85,41 +95,70 @@ class ButtonWatcher:
     @classmethod
     def _DoHandleKeydown(cls, key):
         if key == keyboard.Key.space:
-            cls._PowerButtonPushed()
+            cls._DoPowerButtonPushed()
         # right arrow, toggle
         elif key == keyboard.Key.right:
-            cls._ToggleButtonPushed()
+            cls._DoToggleButtonPushed()
 
     @classmethod
     def _DoHandleKeyup(cls, key):
         if key == keyboard.Key.space:
-            cls._PowerButtonReleased()
+            cls._DoPowerButtonReleased()
         # right arrow, toggle
         elif key == keyboard.Key.right:
-            cls._ToggleButtonReleased()
+            cls._DoToggleButtonReleased()
 
     @classmethod
-    def _ToggleButtonPushed(cls):
+    def _ToggleButtonPushed(cls, queue):
+        queue.put('TOGGLE_PUSHED')
+
+    @classmethod
+    def _ToggleButtonReleased(cls, queue):
+        queue.put('TOGGLE_RELEASED')
+
+    @classmethod
+    def _PowerButtonPushed(cls, queue):
+        queue.put('POWER_PUSHED')
+
+    @classmethod
+    def _PowerButtonReleased(cls, queue):
+        queue.put('POWER_RELEASED')
+
+    @classmethod
+    async def _ProxyButtons(cls, queue):
+        while True:
+            button_name_and_direciton = await queue.get()
+            if button_name_and_direciton == 'TOGGLE_PUSHED':
+                cls._DoToggleButtonPushed()
+            elif button_name_and_direciton == 'TOGGLE_RELEASED':
+                cls._DoToggleButtonReleased()
+            elif button_name_and_direciton == 'POWER_PUSHED':
+                cls._DoPowerButtonPushed()
+            elif button_name_and_direciton == 'POWER_RELEASED':
+                cls._DoPowerButtonReleased()
+
+    @classmethod
+    def _DoToggleButtonPushed(cls):
         if cls._toggle_flag is True:
             return
         cls._toggle_flag = True
         ConnectionManager.SendToggleGif()
 
     @classmethod
-    def _ToggleButtonReleased(cls):
+    def _DoToggleButtonReleased(cls):
         if cls._toggle_flag is False:
             return
         cls._toggle_flag = False
 
     @classmethod
-    def _PowerButtonPushed(cls):
+    def _DoPowerButtonPushed(cls):
         if cls.power_off_flag is True:
             return
         cls.power_off_flag = True
         ConnectionManager.SendPowerOff()
 
     @classmethod
-    def _PowerButtonReleased(cls):
+    def _DoPowerButtonReleased(cls):
         if cls.power_off_flag is False:
             return
         cls.power_off_flag = False
