@@ -68,13 +68,13 @@ class ButtonWatcher:
             cls.toggle_button.when_released = bound_toggle_released
 
             cls.power_button = Button(POWER_BUTTON)
+            if cls.power_button.is_pressed:
+                cls.power_off_flag = True
+
             bound_power_pressed = partial(cls._PowerButtonPushed, queue.sync_q)
             cls.power_button.when_pressed = bound_power_pressed
             bound_power_released = partial(cls._PowerButtonReleased, queue.sync_q)
             cls.power_button.when_released = bound_power_released
-
-            if cls.power_button.is_pressed:
-                cls.power_off_flag = True
 
             asyncio.create_task(cls._ProxyButtons(queue.async_q))
 

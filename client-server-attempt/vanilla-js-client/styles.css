@@ -22,7 +22,7 @@ img.show {
 }
 
 body.hide img.show {
-    display: none
+    opacity: 0;
 }
 
 div.loading-wrapper {
