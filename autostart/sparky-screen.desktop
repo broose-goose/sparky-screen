@@ -1,0 +1,4 @@
+[Desktop Entry]
+Type=Application
+Name=SparkyScreen
+Exec=/usr/bin/python3 /home/pi/Kiosk/sparky-screen/main.py

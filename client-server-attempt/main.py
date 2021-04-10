@@ -285,8 +285,8 @@ async def root():
         return HTMLResponse(content=f.read(), status_code=200)
 
 
-app.mount("/gifs", StaticFiles(directory="gifs"), name="static")
-app.mount("/", StaticFiles(directory="vanilla-js-client"), name="static")
+app.mount("/gifs", StaticFiles(directory=GIF_PATH), name="static")
+app.mount("/", StaticFiles(directory=FRONTEND_PATH), name="static")
 
 folder_watcher: Optional[GifFolderWatcher] = None
 
