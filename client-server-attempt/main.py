@@ -73,6 +73,9 @@ class ButtonWatcher:
             bound_power_released = partial(cls._PowerButtonReleased, queue.sync_q)
             cls.power_button.when_released = bound_power_released
 
+            if cls.power_button.is_pressed:
+                cls.power_off_flag = True
+
             asyncio.create_task(cls._ProxyButtons(queue.async_q))
 
     @classmethod
@@ -216,7 +219,7 @@ class ConnectionManager:
         cls.active_connections.append(websocket)
         cls.TryLoadGifs()
         if ButtonWatcher.power_off_flag:
-            await cls.SendPowerOff()
+            cls.SendPowerOff()
 
     @classmethod
     def disconnect(cls, websocket: WebSocket):
