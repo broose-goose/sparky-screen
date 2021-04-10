@@ -15,6 +15,8 @@ setup(
         'uvicorn[standard]',
         'aiofiles',
         'watchdog',
-        'gpiozero'
+        'gpiozero',
+        'pynput',
+        'janus'
     ]
 )

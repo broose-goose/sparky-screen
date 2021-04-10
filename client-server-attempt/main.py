@@ -34,7 +34,96 @@ if IS_PI:
     from gpiozero import Button
     chrome_path = '/usr/bin/chromium-browser'
 else:
+    from pynput import keyboard
+    import janus
+    from functools import partial
     chrome_path = 'C:\Program Files (x86)\Google\Chrome\Application\chrome'
+
+
+class ButtonWatcher:
+
+    _toggle_flag = False
+    power_off_flag = False
+
+    @classmethod
+    def Startup(cls):
+        if not IS_PI:
+            queue = janus.Queue()
+            bound_key_down = partial(cls._HandleKeydown, queue.sync_q)
+            bound_key_up = partial(cls._HandleKeyup, queue.sync_q)
+            listener = keyboard.Listener(
+                on_press=bound_key_down,
+                on_release=bound_key_up
+            )
+            listener.start()
+            asyncio.create_task(cls._ProxyKeys(queue.async_q))
+        else:
+            cls.toggle_button = Button(TOGGLE_BUTTON)
+            cls.toggle_button.when_pressed = cls._ToggleButtonPushed
+            cls.toggle_button.when_released = cls._ToggleButtonReleased
+            cls.power_button = Button(POWER_BUTTON)
+            cls.power_button.when_pressed = cls._PowerButtonPushed
+            cls.power_button.when_released = cls._PowerButtonReleased
+
+    @classmethod
+    def _HandleKeydown(cls, queue, key):
+        queue.put(('DOWN', key))
+
+    @classmethod
+    def _HandleKeyup(cls, queue, key):
+        queue.put(('UP', key))
+
+    @classmethod
+    async def _ProxyKeys(cls, queue):
+        while True:
+            direction, key = await queue.get()
+            if direction == 'DOWN':
+                cls._DoHandleKeydown(key)
+            elif direction == 'UP':
+                cls._DoHandleKeyup(key)
+
+    @classmethod
+    def _DoHandleKeydown(cls, key):
+        if key == keyboard.Key.space:
+            cls._PowerButtonPushed()
+        # right arrow, toggle
+        elif key == keyboard.Key.right:
+            cls._ToggleButtonPushed()
+
+    @classmethod
+    def _DoHandleKeyup(cls, key):
+        if key == keyboard.Key.space:
+            cls._PowerButtonReleased()
+        # right arrow, toggle
+        elif key == keyboard.Key.right:
+            cls._ToggleButtonReleased()
+
+    @classmethod
+    def _ToggleButtonPushed(cls):
+        if cls._toggle_flag is True:
+            return
+        cls._toggle_flag = True
+        ConnectionManager.SendToggleGif()
+
+    @classmethod
+    def _ToggleButtonReleased(cls):
+        if cls._toggle_flag is False:
+            return
+        cls._toggle_flag = False
+
+    @classmethod
+    def _PowerButtonPushed(cls):
+        if cls.power_off_flag is True:
+            return
+        cls.power_off_flag = True
+        ConnectionManager.SendPowerOff()
+
+    @classmethod
+    def _PowerButtonReleased(cls):
+        if cls.power_off_flag is False:
+            return
+        cls.power_off_flag = False
+        ConnectionManager.SendPowerOn()
 
 
 class GifFolderWatcher:
@@ -87,6 +176,8 @@ class ConnectionManager:
         await websocket.accept()
         cls.active_connections.append(websocket)
         cls.TryLoadGifs()
+        if ButtonWatcher.power_off_flag:
+            await cls.SendPowerOff()
 
     @classmethod
     def disconnect(cls, websocket: WebSocket):
@@ -99,16 +190,16 @@ class ConnectionManager:
             await connection.send_json(message)
 
     @classmethod
-    async def SendPowerOn(cls):
-        await cls._broadcast({ "message": MessageTypes.POWER_ON.value })
+    def SendPowerOn(cls):
+        asyncio.create_task(cls._broadcast({"message": MessageTypes.POWER_ON.value}))
 
     @classmethod
-    async def SendPowerOff(cls):
-        await cls._broadcast({ "message": MessageTypes.POWER_OFF.value })
+    def SendPowerOff(cls):
+        asyncio.create_task(cls._broadcast({"message": MessageTypes.POWER_OFF.value}))
 
     @classmethod
-    async def SendToggleGif(cls):
-        await cls._broadcast({"message": MessageTypes.TOGGLE_GIF.value})
+    def SendToggleGif(cls):
+        asyncio.create_task(cls._broadcast({"message": MessageTypes.TOGGLE_GIF.value}))
 
     @classmethod
     def TryLoadGifs(cls):
@@ -166,7 +257,8 @@ async def startup_event():
     global folder_watcher
     folder_watcher = GifFolderWatcher()
     folder_watcher.start()
-    subprocess.Popen(f'"{chrome_path}" --start-fullscreen http://localhost:42069')
+    ButtonWatcher.Startup()
+    subprocess.Popen([chrome_path, '--start-fullscreen', 'http://localhost:42069'])
 
 
 @app.on_event("shutdown")
