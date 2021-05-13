@@ -149,3 +149,5 @@ cython_debug/
 node_modules
 dist
 .idea
+
+gifs
