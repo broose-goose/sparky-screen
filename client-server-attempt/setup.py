@@ -17,6 +17,7 @@ setup(
         'watchdog',
         'gpiozero',
         'pynput',
-        'janus'
+        'janus',
+        'Pillow'
     ]
 )

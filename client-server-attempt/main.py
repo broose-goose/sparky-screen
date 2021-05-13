@@ -18,6 +18,9 @@ from watchdog.events import PatternMatchingEventHandler
 
 import janus
 from functools import partial
+from threading import Timer
+
+from resize_gifs import try_and_resize_gifs, try_and_resize_all_gifs
 
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
@@ -254,11 +257,17 @@ class ConnectionManager:
         if len(gif_list) == 0:
             asyncio.create_task(cls._SendNoGifs())
         else:
-            asyncio.create_task(cls._SendLoadGifs(gif_list))
+            asyncio.create_task(cls._ResizeAndSendGifs(gif_list))
 
     @classmethod
     async def _SendNoGifs(cls):
         await cls._broadcast({"message": MessageTypes.NO_GIFS.value})
+
+    @classmethod
+    async def _ResizeAndSendGifs(cls, gif_paths: List[str]):
+        await try_and_resize_gifs(gif_paths)
+        await cls._SendLoadGifs(gif_paths)
+
 
     @classmethod
     async def _SendLoadGifs(cls, gif_paths: List[str]):
@@ -296,11 +305,15 @@ folder_watcher: Optional[GifFolderWatcher] = None
 
 @app.on_event("startup")
 async def startup_event():
+    await try_and_resize_all_gifs()
     global folder_watcher
     folder_watcher = GifFolderWatcher()
     folder_watcher.start()
     ButtonWatcher.Startup()
-    subprocess.Popen([chrome_path, '--start-fullscreen', 'http://localhost:42069'])
+
+    def do_open_browser():
+        subprocess.Popen([chrome_path, '--start-fullscreen', 'http://localhost:42069'])
+    Timer(2.0, do_open_browser)
 
 
 @app.on_event("shutdown")
