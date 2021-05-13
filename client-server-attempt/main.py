@@ -312,7 +312,7 @@ async def startup_event():
     ButtonWatcher.Startup()
 
     def do_open_browser():
-        subprocess.Popen([chrome_path, '--start-fullscreen', 'http://localhost:42069'])
+        subprocess.Popen([chrome_path, '--disable-infobars', '--start-fullscreen', 'http://localhost:42069'])
     Timer(2.0, do_open_browser)
 
 
