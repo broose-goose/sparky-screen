@@ -18,6 +18,7 @@ from watchdog.events import PatternMatchingEventHandler
 
 import janus
 from functools import partial
+from threading import Timer
 
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
@@ -300,7 +301,10 @@ async def startup_event():
     folder_watcher = GifFolderWatcher()
     folder_watcher.start()
     ButtonWatcher.Startup()
-    subprocess.Popen([chrome_path, '--start-fullscreen', 'http://localhost:42069'])
+
+    def do_open_browser():
+        subprocess.Popen([chrome_path, '--disable-infobars', '--start-fullscreen', 'http://localhost:42069'])
+    Timer(2.0, do_open_browser)
 
 
 @app.on_event("shutdown")
