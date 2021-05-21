@@ -306,12 +306,13 @@ async def startup_event():
 
     def do_open_browser():
         subprocess.Popen([chrome_path, '--disable-infobars', '--start-fullscreen', '--app=http://localhost:42069'])
+
+        def do_move_mouse():
+            pyautogui.moveRel(0, 10)
+
+        Timer(3.0, do_move_mouse).start()
+
     Timer(2.0, do_open_browser).start()
-
-    def do_move_mouse():
-        pyautogui.moveRel(0, 10)
-
-    Timer(10.0, do_move_mouse).start()
 
 
 @app.on_event("shutdown")
