@@ -20,6 +20,8 @@ import janus
 from functools import partial
 from threading import Timer
 
+import pyautogui
+
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 FRONTEND_PATH = os.path.join(DIR_PATH, 'vanilla-js-client')
@@ -303,8 +305,13 @@ async def startup_event():
     ButtonWatcher.Startup()
 
     def do_open_browser():
-        subprocess.Popen([chrome_path, '--disable-infobars', '--start-fullscreen', 'http://localhost:42069'])
-    Timer(2.0, do_open_browser)
+        subprocess.Popen([chrome_path, '--disable-infobars', '--start-fullscreen', '--app=http://localhost:42069'])
+    Timer(2.0, do_open_browser).start()
+
+    def do_move_mouse():
+        pyautogui.moveRel(0, 10)
+
+    Timer(10.0, do_move_mouse).start()
 
 
 @app.on_event("shutdown")
